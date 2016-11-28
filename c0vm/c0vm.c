@@ -388,9 +388,51 @@ int execute(struct bc0_file *bc0) {
 
     /* Function call operations: */
 
-    case INVOKESTATIC:
-      
-    case INVOKENATIVE:
+    case INVOKESTATIC: {
+		uint16_t c1 = P[pc+1];
+		uint16_t c2 = P[pc+2];
+		
+		uint16_t index = c1<<8|c2;
+		uint16_t num_args = bc0->function_pool[index].num_args;
+		uint16_t num_vars = bc0->function_pool[index].num_vars;
+		c0_value *newV = xcalloc(num_vars, sizeof(c0_value));		// create V array for new frame
+		/* pop arguments from calling frame and store at new V array */
+		for (uint16_t i = num_args - 1; i >= 0; i--) {
+			newV[i] = c0v_pop(S);
+		}
+		/* store calling frame at global callstack */
+		frame * callingFrame = xmalloc(sizeof(frame));
+		callingFrame->S = S;
+		callingFrame->P = P;
+		callingFrame->pc = pc + 3;	// return address
+		callingFrame->V = V;
+		push(callStack, (stack_elem)callingFrame);
+		
+		/* set up new frame*/
+		S = c0v_stack_new();	// create a new operand stack
+		P = bc0->function_pool[index].code;
+		V = newV;
+		pc = 0;
+		
+		break;
+		
+	}
+      /* native function is called using system stack */
+    case INVOKENATIVE: {
+		uint16_t c1 = P[pc+1];
+		uint16_t c2 = P[pc+1];
+		uint16_t index = c1<<8|c2;
+		uint16_t num_args = bc0->native_pool[index].num_args;
+		uint16_t fn_index = bc0->native_pool[index].function_table_index;
+		c0_value *newV = xcalloc(num_args, sizeof(c0_value));
+		for (uint16_t i = num_args -1; i >=0; i--) {
+			newV[i] = c0v_pop(S);
+		}
+		c0_value ret = (native_function_table[fn_index])(newV);
+		free(newV);
+		c0v_push(S, ret);
+		break;
+	}
 
 
     /* Memory allocation operations: */
