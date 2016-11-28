@@ -282,7 +282,7 @@ int execute(struct bc0_file *bc0) {
 		c0_value v1 = c0v_pop(S);
 		c0_value v2 = c0v_pop(S);
 		if (val_equal(v1, v2)) {
-			pc += (int16_t)(i<<8|j);	// this cast is not necessary ?
+			pc += (int16_t)(i<<8|j);
 		}
 		else {
 			pc += 3;
@@ -431,36 +431,142 @@ int execute(struct bc0_file *bc0) {
 		c0_value ret = (native_function_table[fn_index])(newV);
 		free(newV);
 		c0v_push(S, ret);
+		pc += 3;
 		break;
 	}
 
 
     /* Memory allocation operations: */
 
-    case NEW:
+    case NEW: {
+		ubyte size = P[pc+1];
+		c0_value addr = ptr2val(xmalloc(size));
+		c0v_push(S, addr);
+		pc += 2;
+		break;
+	}
       
-    case NEWARRAY:
+    case NEWARRAY: {
+		ubyte size = P[pc+1];
+		int32_t num = val2int(c0v_pop(S));
+		if (num < 0) {
+			c0_memory_error(" invalid array size! ");
+		}
+		/* create a new c0_array_header */
+		c0_array *arrHeader = xmalloc(sizeof(c0_array));
+		arrHeader->count = num;
+		arrHeader->elt_size = size; 
+		arrHeader->elems = xcalloc(num, size);
+		
+		c0v_push(S, ptr2val(arrHeader));
+		pc += 2;
+		break;
+	}
       
-    case ARRAYLENGTH:
+    case ARRAYLENGTH: {
+		c0_array *arrHeader = (c0_array *)val2ptr(c0v_pop(S));
+		if (arrHeader == NULL) {
+			c0_memory_error("invalid access to null pointer!");
+		}
+		int length = arrHeader->count;
+		c0v_push(S, int2val(length));
+		pc++;
+		break;
+	}
 
 
     /* Memory access operations: */
 
-    case AADDF:
+    case AADDF: {
+		ubyte offset = P[pc+1];
+		char *base = (char *)val2ptr(c0v_pop(S));
+		c0_value addr = ptr2val(base + offset);
+		c0v_push(S, addr);
+		pc += 2;
+		break;
+	}
       
-    case AADDS:
+    case AADDS: {
+		int32_t offset = val2int(c0v_pop(S));
+		c0_array *arrHeader = (c0_array *)val2ptr(c0v_pop(S));
+		if (arrHeader == NULL) {
+			c0_memory_error("invalid access to null pointer!");
+		}
+		int elt_size = arrHeader->elt_size;
+		int length = arrHeader->count;
+		char *base = arrHeader->elems;
+		if (offset < 0 || offset >= length) {
+			c0_memory_error("array outbound error!");
+		}
+		c0_value addr = ptr2val(base+offset*elt_size);
+		c0v_push(S, addr);
+		pc++;
+		break;
+	}
       
-    case IMLOAD:
+    case IMLOAD: {
+		int32_t *addr = (int32_t *)val2ptr(c0v_pop(S));
+		if (addr == NULL) {
+			c0_memory_error("invalid access to null pointer!");
+		}
+		c0v_push(S, int2val(*addr));
+		pc++;
+		break;
+	}
       
-    case IMSTORE:
+    case IMSTORE: {
+		int32_t data = val2int(c0v_pop(S));
+		int32_t *addr = (int32_t *)val2ptr(c0v_pop(S));
+		if (addr == NULL) {
+			c0_memory_error("invalid access to null pointer!");
+		}
+		*addr = data;
+		pc++;
+		break;
+	}
       
-    case AMLOAD:
+    case AMLOAD: {
+		void **addr = val2ptr(c0v_pop(S));
+		if (addr == NULL) {
+			c0_memory_error("invalid access to null pointer!");
+		}
+		c0v_push(S, ptr2val(*addr));
+		pc++;
+		break;
+	}
       
-    case AMSTORE:
+    case AMSTORE: {
+		void *data = val2ptr(c0v_pop(S));
+		void **addr = val2ptr(c0v_pop(S));
+		if (addr == NULL) {
+			c0_memory_error("invalid access to null pointer!");
+		}
+		*addr = data;
+		pc++;
+		break;
+	}
       
-    case CMLOAD:
+    case CMLOAD: {
+		char *addr = (char *)val2ptr(c0v_pop(S));
+		if (addr == NULL) {
+			c0_memory_error("invalid access to null pointer!");
+		}
+		int32_t data = (int32_t)(*addr);
+		c0v_push(S, int2val(data));
+		pc++;
+		break;
+	}
       
-    case CMSTORE:
+    case CMSTORE: {
+		int32_t data = val2int(c0v_pop(S));
+		char *addr = (char *)val2ptr(c0v_pop(S));
+		if (addr == NULL) {
+			c0_memory_error("invalid access to null pointer!");
+		}
+		*addr = (char)(data & 0x17);
+		pc++;
+		break;
+	}
       
     default:
       fprintf(stderr, "invalid opcode: 0x%02x\n", P[pc]);
