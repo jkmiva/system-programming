@@ -3,18 +3,22 @@
 #                                                                              #
 # Description: This file contains the make rules for Recitation 1.             #
 #                                                                              #
-# Authors: Athula Balachandran <abalacha@cs.cmu.edu>,                          #
-#          Wolf Richter <wolf@cs.cmu.edu>                                      #
+# Authors: Huang Jiaming                                                       #
+# $^ all the conditions                                                        #
+# $@ the target                                                                #
 #                                                                              #
 ################################################################################
 
-default: echo_server echo_client
+all: liso
 
-echo_server:
-	@gcc echo_server.c -o echo_server -Wall -Werror
+liso: liso.o client_pool.o
+	gcc $^ -o $@
 
-echo_client:
-	@gcc echo_client.c -o echo_client -Wall -Werror
+liso.o: liso.h
+
+client_pool.o: client_pool.h
 
 clean:
-	@rm echo_server echo_client
+	-rm *.o liso
+
+.phony: clean
