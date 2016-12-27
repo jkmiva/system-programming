@@ -16,7 +16,8 @@
 #include <fcntl.h>
 
 #include "client_pool.h"
-
+#include "log/log.h"
+#include "utility/socket_wrapper.h"
 
 #define BUF_SIZE 4096
 
