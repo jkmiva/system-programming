@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define MAX(_a, _b) ((_a) > (_b) ? (_a) : (_b))
-#define MIN(_a, _b) ((_a) < (_b) ? (_a) : (_b))
+#define MAX(_a, _b) (((_a) > (_b)) ? (_a) : (_b))
+#define MIN(_a, _b) (((_a) < (_b)) ? (_a) : (_b))
 
 char* get_time();
 

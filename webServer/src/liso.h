@@ -16,6 +16,7 @@
 #include <fcntl.h>
 
 #include "client_pool.h"
+#include "handle_conn.h"
 #include "log/log.h"
 #include "utility/socket_wrapper.h"
 
